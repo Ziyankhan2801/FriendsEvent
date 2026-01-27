@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Friends Events Decorative</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<!-- ✅ NAVBAR -->
+<nav class="navbar">
+    <h2>Friends Events</h2>
+
+    <button class="menu-btn" onclick="toggleMenu()">☰</button>
+
+    <div class="nav-links" id="navLinks">
+        <a href="#about" onclick="closeMenu()">About</a>
+        <a href="#services" onclick="closeMenu()">Services</a>
+        <a href="#gallery" onclick="closeMenu()">Our Work</a>
+        <a href="#booking" onclick="closeMenu()">Booking</a>
+        <a href="#map" onclick="closeMenu()">Map</a>
+    </div>
+</nav>
+
+<!-- HERO -->
+<header class="hero">
+    <h1>Friends Events Decorative</h1>
+    <p>Turning Your Celebrations Into Memories</p>
+    <button onclick="scrollToBooking()">Book Now</button>
+</header>
+
+<!-- ABOUT -->
+<section class="section reveal" id="about">
+    <h2>About Us</h2>
+    <p>
+        Friends Events Decorative provides professional decoration services for
+        weddings, birthdays, corporate events, and private parties.
+    </p>
+</section>
+
+<!-- SERVICES -->
+<section class="section bg reveal" id="services">
+    <h2>Our Services</h2>
+    <div class="grid">
+        <div class="card">🎉 Birthday Decoration</div>
+        <div class="card">💍 Wedding Decoration</div>
+        <div class="card">🎈 Balloon Decoration</div>
+        <div class="card">🌸 Floral Decoration</div>
+        <div class="card">🏢 Corporate Events</div>
+        <div class="card">📸 Stage & Photo Booth</div>
+    </div>
+</section>
+
+<!-- PACKAGES -->
+<section class="section reveal">
+    <h2>Packages</h2>
+    <div class="grid">
+        <div class="price-card">
+            <h3>Basic – ₹5,000*</h3>
+            <p>Balloon Decor, Backdrop, Cake Table</p>
+        </div>
+        <div class="price-card">
+            <h3>Standard – ₹10,000*</h3>
+            <p>Theme Decor, LED Lights, Stage Setup</p>
+        </div>
+        <div class="price-card">
+            <h3>Premium – ₹20,000*</h3>
+            <p>Full Stage, Floral, Custom Theme</p>
+        </div>
+    </div>
+</section>
+
+<!-- ✅ GALLERY SLIDER -->
+<section class="section bg reveal" id="gallery">
+    <h2>Our Work</h2>
+
+    <div class="slider">
+        <button class="nav" onclick="prevSlide()">❮</button>
+
+        {% if images %}
+          <img id="slide" src="{{ images.0.image.url }}" alt="Gallery">
+        {% else %}
+          <img id="slide" src="https://via.placeholder.com/600x400" alt="Gallery">
+        {% endif %}
+
+        <button class="nav" onclick="nextSlide()">❯</button>
+    </div>
+</section>
+
+<!-- BOOKING FORM -->
+<section class="section reveal" id="booking">
+    <h2>Book Your Event</h2>
+
+    <form method="POST" action="/submit-booking/">
+        {% csrf_token %}
+
+        <input type="text" name="name" placeholder="Your Name" required>
+        <input type="tel" name="phone" placeholder="Phone Number" required>
+        <input type="email" name="email" placeholder="Email Address" required>
+
+        <select name="eventType" required>
+            <option value="">Select Event Type</option>
+            <option>Birthday</option>
+            <option>Wedding</option>
+            <option>Engagement</option>
+            <option>Corporate</option>
+        </select>
+
+        <input type="date" name="date" required>
+        <input type="text" name="location" placeholder="Event Location" required>
+        <input type="number" name="amount" placeholder="Expected Budget (₹)" required>
+
+        <textarea name="message" placeholder="Extra Requirements"></textarea>
+
+        <button type="submit">Submit Booking</button>
+    </form>
+</section>
+
+<!-- ✅ GOOGLE MAP -->
+<section class="section bg reveal" id="map">
+    <h2>Find Us</h2>
+    <p>Chopda, Maharashtra</p>
+
+    <iframe
+        class="map"
+        src="https://www.google.com/maps?q=chopda&output=embed"
+        loading="lazy"
+        allowfullscreen
+    ></iframe>
+</section>
+
+<!-- INSTAGRAM -->
+<section class="section bg reveal">
+    <h2>Follow Us on Instagram</h2>
+    <a class="insta" href="https://www.instagram.com/friends_decorater_chopda?igsh=Zmo1djFsOGNiMmE3" target="_blank">
+        📸 @friends_decorater_chopda
+    </a>
+</section>
+
+<!-- FOOTER -->
+<footer>
+    <p>© 2026 Friends Events Decorative</p>
+</footer>
+
+<!-- ✅ Gallery Data Safe JSON ✅ (NO QuerySet error) -->
+{{ gallery_list|json_script:"gallery-data" }}
+
+<script>
+    const galleryData = JSON.parse(document.getElementById("gallery-data").textContent);
+    window.GALLERY_IMAGES = galleryData.map(item => item.image);
+</script>
+
+<script src="/static/script.js"></script>
+</body>
+</html>
