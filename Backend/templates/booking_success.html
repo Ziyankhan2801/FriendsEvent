@@ -1,15 +1,43 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Booking Success</title>
-  <link rel="stylesheet" href="./css/style.css">
+  <meta charset="UTF-8">
+  <title>Payment Received ✅</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-<section class="section">
-  <h2>✅ Booking Submitted!</h2>
-  <p>Your booking request is received.</p>
-  <p>We will contact you soon.</p>
-  <a href="index.html">⬅ Back Home</a>
+
+<section class="section" style="max-width:600px;margin:40px auto;text-align:center">
+  
+  <h2 style="color:#28a745">✅ Payment Uploaded Successfully</h2>
+
+  <p style="margin-top:15px;font-size:16px;">
+    Thank you <b>{{ booking.name }}</b> 🙌  
+  </p>
+
+  <p>
+    Your payment screenshot has been received for:
+  </p>
+
+  <div style="background:#f8f9fa;padding:15px;border-radius:10px;margin:20px 0">
+    <p><b>Booking ID:</b> #{{ booking.id }}</p>
+    <p><b>Event:</b> {{ booking.event_type }}</p>
+    <p><b>Date:</b> {{ booking.date }}</p>
+    <p><b>Advance Paid:</b> ₹{{ booking.advance_amount }}</p>
+    <p><b>Status:</b> <span style="color:#ff9800">Waiting for Confirmation</span></p>
+  </div>
+
+  <p style="font-size:14px;color:#555">
+    ⏳ Our team will verify the payment and confirm your booking soon.  
+    You’ll receive a confirmation email with invoice 📧
+  </p>
+
+  <a href="/" class="insta" style="margin-top:20px;display:inline-block">
+    ⬅ Back to Home
+  </a>
+
 </section>
+
 </body>
 </html>
