@@ -1,11 +1,12 @@
 /* =========================
-   CONFIG
+   CONFIG (AUTO)
 ========================= */
 
-// 🔴 Backend URL
-const API_URL = "http://127.0.0.1:8000";
-// const API_URL = "https://event-booking-system.onrender.com"; // deploy ke baad
-
+// 🔥 Auto detect backend (Local vs Production)
+const API_URL =
+  window.location.hostname === "localhost"
+    ? "http://127.0.0.1:8000"
+    : "https://friendsevent.onrender.com";
 
 /* =========================
    UI FUNCTIONS
@@ -30,7 +31,6 @@ function revealOnScroll() {
 
 window.addEventListener("scroll", revealOnScroll);
 window.addEventListener("load", revealOnScroll);
-
 
 /* =========================
    🖼️ GALLERY API + SLIDER
@@ -65,13 +65,13 @@ function showSlide() {
 }
 
 function nextSlide() {
-  if (images.length === 0) return;
+  if (!images.length) return;
   index = (index + 1) % images.length;
   showSlide();
 }
 
 function prevSlide() {
-  if (images.length === 0) return;
+  if (!images.length) return;
   index = (index - 1 + images.length) % images.length;
   showSlide();
 }
@@ -82,7 +82,6 @@ setInterval(() => {
 }, 3000);
 
 window.addEventListener("load", loadGallery);
-
 
 /* =========================
    MOBILE NAV CLOSE
@@ -104,7 +103,6 @@ document.addEventListener("click", (e) => {
     }
   }
 });
-
 
 /* =========================
    🔥 BOOKING FORM → API (FINAL)
@@ -137,26 +135,23 @@ if (bookingForm) {
         body: JSON.stringify(payload),
       });
 
-      if (!res.ok) {
-        throw new Error("API response not OK");
-      }
+      if (!res.ok) throw new Error("Booking API failed");
 
       const result = await res.json();
       console.log("BOOKING RESPONSE:", result);
 
       if (result.success && result.booking_id) {
-        // ✅ GUARANTEED REDIRECT
-        window.location.replace(
-          "./success.html?booking_id=" + result.booking_id
-        );
+        // ✅ HARD REDIRECT (NO FAIL)
+        window.location.href =
+          "success.html?booking_id=" + result.booking_id;
         return;
       }
 
-      alert("❌ Booking failed. Please check details.");
+      alert("❌ Booking failed. Try again.");
 
     } catch (err) {
-      console.error("Booking API error:", err);
-      alert("❌ Backend unreachable. Django server running hai kya?");
+      console.error("Booking error:", err);
+      alert("❌ Server issue. Please try later.");
     }
 
     btn.disabled = false;

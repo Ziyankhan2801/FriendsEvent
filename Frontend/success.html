@@ -1,24 +1,47 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
   <title>Booking Submitted</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
-<body style="text-align:center;padding:40px;font-family:Arial">
 
-  <h2>✅ Booking Submitted Successfully</h2>
-  <p id="msg"></p>
+<body style="
+  text-align:center;
+  padding:40px;
+  font-family:Arial, sans-serif;
+  background:#f9f9f9;
+">
 
-  <a href="index.html">⬅ Back to Home</a>
+  <h1>✅ Booking Submitted Successfully</h1>
+  <p id="msg" style="font-size:18px;"></p>
+
+  <p>
+    📧 Please check your email.<br>
+    We will contact you after approval.
+  </p>
+
+  <br>
+
+  <a href="index.html"
+     style="
+       display:inline-block;
+       padding:10px 20px;
+       background:#222;
+       color:#fff;
+       text-decoration:none;
+       border-radius:6px;
+     ">
+     ⬅ Back to Home
+  </a>
 
   <script>
     const params = new URLSearchParams(window.location.search);
     const id = params.get("booking_id");
 
-    if (id) {
-      document.getElementById("msg").innerText =
-        "Your booking ID is #" + id + ". We will contact you soon.";
-    }
+    document.getElementById("msg").innerText = id
+      ? "Your Booking ID is #" + id
+      : "Your booking has been recorded.";
   </script>
 
 </body>
