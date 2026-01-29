@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Booking Submitted</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="text-align:center;padding:40px;font-family:Arial">
+
+  <h2>✅ Booking Submitted Successfully</h2>
+  <p id="msg"></p>
+
+  <a href="index.html">⬅ Back to Home</a>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get("booking_id");
+
+    if (id) {
+      document.getElementById("msg").innerText =
+        "Your booking ID is #" + id + ". We will contact you soon.";
+    }
+  </script>
+
+</body>
+</html>

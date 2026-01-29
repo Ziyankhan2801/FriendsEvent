@@ -2,30 +2,27 @@
    CONFIG
 ========================= */
 
-// 🔴 YAHAN APNA RENDER BACKEND URL DAAL
-const API_URL = "https://event-booking-system.onrender.com";
+// 🔴 Backend URL
+const API_URL = "http://127.0.0.1:8000";
+// const API_URL = "https://event-booking-system.onrender.com"; // deploy ke baad
+
 
 /* =========================
-   UI FUNCTIONS (as it is)
+   UI FUNCTIONS
 ========================= */
 
 function scrollToBooking() {
-  document.getElementById("booking").scrollIntoView({ behavior: "smooth" });
+  document.getElementById("booking")?.scrollIntoView({ behavior: "smooth" });
 }
 
-/* ✅ Mobile Navbar toggle */
 function toggleMenu() {
-  document.getElementById("navLinks").classList.toggle("show");
+  document.getElementById("navLinks")?.classList.toggle("show");
 }
 
-/* ✅ Reveal animation on scroll */
+/* Reveal on scroll */
 function revealOnScroll() {
-  const reveals = document.querySelectorAll(".reveal");
-  reveals.forEach(el => {
-    const windowHeight = window.innerHeight;
-    const elementTop = el.getBoundingClientRect().top;
-
-    if (elementTop < windowHeight - 100) {
+  document.querySelectorAll(".reveal").forEach(el => {
+    if (el.getBoundingClientRect().top < window.innerHeight - 100) {
       el.classList.add("active");
     }
   });
@@ -34,16 +31,37 @@ function revealOnScroll() {
 window.addEventListener("scroll", revealOnScroll);
 window.addEventListener("load", revealOnScroll);
 
+
 /* =========================
-   SLIDER
+   🖼️ GALLERY API + SLIDER
 ========================= */
 
-let images = window.GALLERY_IMAGES || [];
+let images = [];
 let index = 0;
+const slideImg = document.getElementById("slide");
+
+async function loadGallery() {
+  if (!slideImg) return;
+
+  try {
+    const res = await fetch(`${API_URL}/api/gallery/`);
+    if (!res.ok) throw new Error("Gallery API failed");
+
+    images = await res.json();
+
+    slideImg.src = images.length
+      ? images[0].image
+      : "./images/default.jpg";
+
+  } catch (err) {
+    console.error("Gallery error:", err);
+    slideImg.src = "./images/default.jpg";
+  }
+}
 
 function showSlide() {
-  if (images.length === 0) return;
-  document.getElementById("slide").src = images[index];
+  if (!slideImg || images.length === 0) return;
+  slideImg.src = images[index].image;
 }
 
 function nextSlide() {
@@ -58,15 +76,13 @@ function prevSlide() {
   showSlide();
 }
 
-/* ✅ Auto slide */
+/* Auto slide */
 setInterval(() => {
   if (images.length > 1) nextSlide();
 }, 3000);
 
-window.onload = () => {
-  images = window.GALLERY_IMAGES || [];
-  showSlide();
-};
+window.addEventListener("load", loadGallery);
+
 
 /* =========================
    MOBILE NAV CLOSE
@@ -74,7 +90,7 @@ window.onload = () => {
 
 document.querySelectorAll("#navLinks a").forEach(link => {
   link.addEventListener("click", () => {
-    document.getElementById("navLinks").classList.remove("show");
+    document.getElementById("navLinks")?.classList.remove("show");
   });
 });
 
@@ -82,26 +98,29 @@ document.addEventListener("click", (e) => {
   const navLinks = document.getElementById("navLinks");
   const menuBtn = document.querySelector(".menu-btn");
 
-  if (!navLinks.contains(e.target) && !menuBtn.contains(e.target)) {
-    navLinks.classList.remove("show");
+  if (navLinks && menuBtn) {
+    if (!navLinks.contains(e.target) && !menuBtn.contains(e.target)) {
+      navLinks.classList.remove("show");
+    }
   }
 });
 
+
 /* =========================
-   🔥 BOOKING FORM → API
+   🔥 BOOKING FORM → API (FINAL)
 ========================= */
 
 const bookingForm = document.getElementById("bookingForm");
 
 if (bookingForm) {
-  bookingForm.addEventListener("submit", async function (e) {
+  bookingForm.addEventListener("submit", async (e) => {
     e.preventDefault();
 
     const btn = bookingForm.querySelector("button");
     btn.disabled = true;
     btn.innerText = "Submitting...";
 
-    const data = {
+    const payload = {
       name: bookingForm.name.value.trim(),
       phone: bookingForm.phone.value.trim(),
       email: bookingForm.email.value.trim(),
@@ -114,32 +133,33 @@ if (bookingForm) {
     try {
       const res = await fetch(`${API_URL}/api/booking/`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
 
-      const result = await res.json();
-
-      if (result.success) {
-        // ✅ SUCCESS → redirect
-        window.location.href = "success.html";
-      } else {
-        alert("❌ Something went wrong. Try again.");
+      if (!res.ok) {
+        throw new Error("API response not OK");
       }
 
+      const result = await res.json();
+      console.log("BOOKING RESPONSE:", result);
+
+      if (result.success && result.booking_id) {
+        // ✅ GUARANTEED REDIRECT
+        window.location.replace(
+          "./success.html?booking_id=" + result.booking_id
+        );
+        return;
+      }
+
+      alert("❌ Booking failed. Please check details.");
+
     } catch (err) {
-      console.error(err);
-      alert("❌ Server error. Please try later.");
+      console.error("Booking API error:", err);
+      alert("❌ Backend unreachable. Django server running hai kya?");
     }
 
     btn.disabled = false;
     btn.innerText = "Submit Booking";
   });
-}
-
-if (result.success) {
-  alert("✅ Booking submitted successfully!");
-  bookingForm.reset();
 }

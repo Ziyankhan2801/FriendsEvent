@@ -5,6 +5,7 @@ from django.http import FileResponse, JsonResponse
 from django.contrib import messages
 from django.views.decorators.csrf import csrf_exempt
 from urllib.parse import quote
+from datetime import datetime
 import json
 
 from .models import GalleryImage, Booking
@@ -12,20 +13,26 @@ from .utils.invoice import generate_invoice_pdf
 
 
 # ======================================================
-# HOME (only for Django admin / testing, optional)
+# HOME (sirf admin/testing ke liye)
 # ======================================================
 def home(request):
     images = GalleryImage.objects.order_by("-uploaded_at")[:8]
-    gallery_list = [{"image": img.image.url} for img in images]
+
+    gallery_list = [
+        {
+            "image": request.build_absolute_uri(img.image.url),
+            "title": img.title
+        }
+        for img in images
+    ]
 
     return render(request, "index.html", {
-        "images": images,
         "gallery_list": gallery_list
     })
 
 
 # ======================================================
-# 🔥 BOOKING API (Netlify → Render)
+# 🔥 BOOKING API (Frontend → Backend)
 # ======================================================
 @csrf_exempt
 def api_booking(request):
@@ -35,23 +42,26 @@ def api_booking(request):
     try:
         data = json.loads(request.body)
 
+        # ✅ DATE STRING → PYTHON DATE
+        event_date = datetime.strptime(data["date"], "%Y-%m-%d").date()
+
         booking = Booking.objects.create(
-            name=data.get("name"),
-            phone=data.get("phone"),
-            email=data.get("email"),
-            event_type=data.get("event_type"),
-            date=data.get("date"),
-            location=data.get("location"),
-            amount=int(data.get("amount", 0)),
-            message=data.get("message", ""),
+            name=data["name"],
+            phone=data["phone"],
+            email=data["email"],
+            event_type=data["event_type"],
+            date=event_date,
+            location=data["location"],
+            amount=int(data["amount"]),
             status="PENDING"
         )
 
-        # ✅ OWNER MAIL
-        try:
-            send_mail(
-                "📩 New Booking Request (PENDING)",
-                f"""
+        # =========================
+        # 📩 OWNER MAIL
+        # =========================
+        send_mail(
+            "📩 New Booking Request (PENDING)",
+            f"""
 New booking received ✅
 
 Name: {booking.name}
@@ -62,36 +72,38 @@ Date: {booking.date}
 Location: {booking.location}
 Budget: ₹{booking.amount}
 
-Status: PENDING
-""",
-                settings.EMAIL_HOST_USER,
-                [settings.OWNER_EMAIL],
-                fail_silently=True
-            )
-        except:
-            pass
+Booking ID: {booking.id}
 
-        # ✅ CLIENT MAIL
-        try:
-            send_mail(
-                "✅ Booking Received - Friends Events",
-                f"""
+Admin Panel:
+http://127.0.0.1:8000/admin/
+""",
+            settings.EMAIL_HOST_USER,
+            [settings.OWNER_EMAIL],
+            fail_silently=True
+        )
+
+        # =========================
+        # 📩 CLIENT MAIL
+        # =========================
+        send_mail(
+            "✅ Booking Submitted - Friends Events Decorative",
+            f"""
 Hi {booking.name},
 
-Your booking request has been received successfully ✅
+Your booking request has been submitted successfully ✅
+
+Booking ID: {booking.id}
 Current Status: PENDING
 
-We will contact you soon.
+We will contact you soon for approval and payment.
 
 Thanks ❤️
-{settings.BUSINESS_NAME}
+Friends Events Decorative
 """,
-                settings.EMAIL_HOST_USER,
-                [booking.email],
-                fail_silently=True
-            )
-        except:
-            pass
+            settings.EMAIL_HOST_USER,
+            [booking.email],
+            fail_silently=True
+        )
 
         return JsonResponse({
             "success": True,
@@ -99,6 +111,7 @@ Thanks ❤️
         })
 
     except Exception as e:
+        print("🔥 BOOKING ERROR:", e)
         return JsonResponse({
             "success": False,
             "error": str(e)
@@ -111,7 +124,7 @@ Thanks ❤️
 def payment_page(request, booking_id):
     booking = get_object_or_404(Booking, id=booking_id)
 
-    # ❌ Not approved yet
+    # ❌ Payment allowed only after APPROVED
     if booking.status not in ["APPROVED", "PAID"]:
         return render(request, "payment_wait.html", {"booking": booking})
 
@@ -129,7 +142,7 @@ def payment_page(request, booking_id):
         f"&pn={quote(business_name)}"
         f"&am={pay_amount}"
         f"&cu=INR"
-        f"&tn={quote(f'Booking#{booking.id} Advance Payment')}"
+        f"&tn={quote(f'Booking #{booking.id} Advance Payment')}"
     )
 
     if request.method == "POST":
@@ -141,7 +154,9 @@ def payment_page(request, booking_id):
         booking.status = "PAID"
         booking.save()
 
-        # ✅ OWNER MAIL
+        # =========================
+        # 📩 OWNER MAIL
+        # =========================
         try:
             owner_mail = EmailMessage(
                 subject=f"✅ Payment Screenshot Uploaded - Booking #{booking.id}",
@@ -166,28 +181,29 @@ Status: PAID (Waiting confirmation)
                 owner_mail.attach_file(booking.payment_screenshot.path)
 
             owner_mail.send(fail_silently=True)
-        except:
-            pass
+        except Exception as e:
+            print("MAIL ERROR:", e)
 
-        # ✅ CLIENT MAIL
-        try:
-            send_mail(
-                "✅ Payment Uploaded - Friends Events",
-                f"""
+        # =========================
+        # 📩 CLIENT MAIL
+        # =========================
+        send_mail(
+            "✅ Payment Uploaded - Friends Events Decorative",
+            f"""
 Hi {booking.name},
 
 Your payment screenshot has been received ✅
 Please wait while admin confirms your booking.
 
+Booking ID: {booking.id}
+
 Thanks ❤️
-{settings.BUSINESS_NAME}
+Friends Events Decorative
 """,
-                settings.EMAIL_HOST_USER,
-                [booking.email],
-                fail_silently=True
-            )
-        except:
-            pass
+            settings.EMAIL_HOST_USER,
+            [booking.email],
+            fail_silently=True
+        )
 
         messages.success(request, "✅ Payment uploaded successfully!")
         return redirect("payment_page", booking_id=booking.id)
@@ -213,3 +229,20 @@ def download_invoice(request, booking_id):
         as_attachment=True,
         filename=f"invoice_{booking.id}.pdf"
     )
+
+
+# ======================================================
+# 🖼️ GALLERY API
+# ======================================================
+def api_gallery(request):
+    images = GalleryImage.objects.order_by("-uploaded_at")
+
+    data = [
+        {
+            "image": request.build_absolute_uri(img.image.url),
+            "title": img.title
+        }
+        for img in images
+    ]
+
+    return JsonResponse(data, safe=False)
