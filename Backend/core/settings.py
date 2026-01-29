@@ -21,11 +21,13 @@ if not os.getenv("RENDER"):
 # ======================
 # ALLOWED HOSTS
 # ======================
-ALLOWED_HOSTS = (
-    os.getenv("ALLOWED_HOSTS", "").split(",")
-    if os.getenv("ALLOWED_HOSTS")
-    else ["*"]
-)
+ALLOWED_HOSTS = [
+    "friendsevent.onrender.com",
+    ".onrender.com",
+    "localhost",
+    "127.0.0.1",
+]
+
 
 # ======================
 # APPS
@@ -60,11 +62,10 @@ MIDDLEWARE = [
 # ======================
 CORS_ALLOW_ALL_ORIGINS = True
 
-CSRF_TRUSTED_ORIGINS = (
-    os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",")
-    if os.getenv("CSRF_TRUSTED_ORIGINS")
-    else []
-)
+CSRF_TRUSTED_ORIGINS = [
+    "https://friendsevent.onrender.com",
+]
+
 
 # ======================
 # URLS / WSGI
@@ -173,3 +174,7 @@ if CLOUDINARY_URL:
         "cloudinary_storage",
     ]
     DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
+
+
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+USE_X_FORWARDED_HOST = True
