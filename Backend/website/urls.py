@@ -1,12 +1,9 @@
 from django.urls import path
-from . import views
+from .views import api_booking, api_gallery, payment_page, download_invoice
 
 urlpatterns = [
-    # APIs
-    path("api/booking/", views.api_booking),
-    path("api/gallery/", views.api_gallery),
-
-    # Backend-only pages
-    path("payment/<int:booking_id>/", views.payment_page, name="payment_page"),
-    path("invoice/<int:booking_id>/", views.download_invoice, name="download_invoice"),
+    path("api/booking/", api_booking),
+    path("api/gallery/", api_gallery),
+    path("payment/<int:booking_id>/", payment_page, name="payment"),
+    path("invoice/<int:booking_id>/", download_invoice),
 ]

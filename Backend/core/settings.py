@@ -2,25 +2,18 @@ from pathlib import Path
 import os
 import dj_database_url
 
-# ======================
-# BASE
-# ======================
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.getenv("SECRET_KEY", "change-this-secret-key")
+# ======================
+# SECURITY
+# ======================
+SECRET_KEY = os.getenv("SECRET_KEY", "unsafe-secret-key")
 
-# ======================
-# DEBUG
-# ======================
 DEBUG = os.getenv("DEBUG", "False") == "True"
 
-# Local run ke liye
 if not os.getenv("RENDER"):
     DEBUG = True
 
-# ======================
-# ALLOWED HOSTS
-# ======================
 ALLOWED_HOSTS = [
     "friendsevent.onrender.com",
     ".onrender.com",
@@ -28,6 +21,12 @@ ALLOWED_HOSTS = [
     "127.0.0.1",
 ]
 
+CSRF_TRUSTED_ORIGINS = [
+    "https://friendsevent.onrender.com",
+]
+
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+USE_X_FORWARDED_HOST = True
 
 # ======================
 # APPS
@@ -57,18 +56,10 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
 ]
 
-# ======================
-# CORS
-# ======================
 CORS_ALLOW_ALL_ORIGINS = True
 
-CSRF_TRUSTED_ORIGINS = [
-    "https://friendsevent.onrender.com",
-]
-
-
 # ======================
-# URLS / WSGI
+# URL / WSGI
 # ======================
 ROOT_URLCONF = "core.urls"
 WSGI_APPLICATION = "core.wsgi.application"
@@ -79,10 +70,11 @@ WSGI_APPLICATION = "core.wsgi.application"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [BASE_DIR / "templates", BASE_DIR / "Backend" / "templates"],
+        "DIRS": [BASE_DIR / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
+                "django.template.context_processors.debug",
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
@@ -90,7 +82,6 @@ TEMPLATES = [
         },
     },
 ]
-
 
 # ======================
 # DATABASE
@@ -107,61 +98,32 @@ if DATABASE_URL:
     DATABASES["default"] = dj_database_url.parse(DATABASE_URL)
 
 # ======================
-# PASSWORD VALIDATION
-# ======================
-AUTH_PASSWORD_VALIDATORS = []
-
-# ======================
-# LANGUAGE / TIME
-# ======================
-LANGUAGE_CODE = "en-us"
-TIME_ZONE = "Asia/Kolkata"
-USE_I18N = True
-USE_TZ = True
-
-# ======================
-# STATIC FILES
+# STATIC / MEDIA
 # ======================
 STATIC_URL = "/static/"
-STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
-# ======================
-# MEDIA
-# ======================
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 # ======================
-# DEFAULT PK
-# ======================
-DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-
-# ======================
-# BUSINESS SETTINGS
-# ======================
-BUSINESS_NAME = "Friends Events Decorative"
-BUSINESS_PHONE = "+919970147735"
-BUSINESS_CITY = "Chopda"
-BUSINESS_LOGO = BASE_DIR / "static" / "logo.png"
-
-ADVANCE_PERCENT = 30
-UPI_ID = "9021520686@axl"
-
-# ======================
-# EMAIL (GMAIL SMTP)
+# EMAIL
 # ======================
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = "smtp.gmail.com"
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-
 EMAIL_HOST_USER = "friendseventsdecor@gmail.com"
-EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "nmgqtihlcaehkdvg")
-
-OWNER_EMAIL = "umerkhan708670@gmail.com"
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
 DEFAULT_FROM_EMAIL = "Friends Events <friendseventsdecor@gmail.com>"
+OWNER_EMAIL = "umerkhan708670@gmail.com"
+
+# ======================
+# BUSINESS
+# ======================
+BUSINESS_NAME = "Friends Events Decorative"
+UPI_ID = "9021520686@axl"
 
 # ======================
 # CLOUDINARY
@@ -169,12 +131,7 @@ DEFAULT_FROM_EMAIL = "Friends Events <friendseventsdecor@gmail.com>"
 CLOUDINARY_URL = os.getenv("CLOUDINARY_URL")
 
 if CLOUDINARY_URL:
-    INSTALLED_APPS += [
-        "cloudinary",
-        "cloudinary_storage",
-    ]
+    INSTALLED_APPS += ["cloudinary", "cloudinary_storage"]
     DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
 
-
-SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-USE_X_FORWARDED_HOST = True
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
