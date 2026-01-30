@@ -137,20 +137,21 @@ MEDIA_ROOT = BASE_DIR / "media"
 
 
 # ======================
-# EMAIL (SAFE PRODUCTION)
+# EMAIL (PRODUCTION SAFE)
 # ======================
 
-if DEBUG:
-    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
-else:
-    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-    EMAIL_HOST = "smtp.gmail.com"
-    EMAIL_PORT = 587
-    EMAIL_USE_TLS = True
-    EMAIL_HOST_USER = "friendseventsdecor@gmail.com"
-    EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
-    DEFAULT_FROM_EMAIL = "Friends Events <friendseventsdecor@gmail.com>"
-    OWNER_EMAIL = "umerkhan708670@gmail.com"
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_TIMEOUT = 10  # 🔥 IMPORTANT (prevents worker hang)
+
+EMAIL_HOST_USER = "friendseventsdecor@gmail.com"
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
+
+DEFAULT_FROM_EMAIL = "Friends Events <friendseventsdecor@gmail.com>"
+OWNER_EMAIL = "umerkhan708670@gmail.com"
 
 
 
