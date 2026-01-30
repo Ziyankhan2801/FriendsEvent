@@ -7,13 +7,14 @@ from django.views.decorators.csrf import csrf_exempt
 from urllib.parse import quote
 from datetime import datetime
 import json
+import threading
 
 from .models import GalleryImage, Booking
 from .utils.invoice import generate_invoice_pdf
 
 
 # ======================================================
-# HOME (sirf admin/testing ke liye)
+# HOME
 # ======================================================
 def home(request):
     images = GalleryImage.objects.order_by("-uploaded_at")[:8]
@@ -32,33 +33,11 @@ def home(request):
 
 
 # ======================================================
-# 🔥 BOOKING API (Frontend → Backend)
+# 🔥 BACKGROUND MAIL FUNCTION
 # ======================================================
-@csrf_exempt
-def api_booking(request):
-    if request.method != "POST":
-        return JsonResponse({"error": "Only POST allowed"}, status=405)
-
+def send_booking_emails(booking):
     try:
-        data = json.loads(request.body)
-
-        # ✅ DATE STRING → PYTHON DATE
-        event_date = datetime.strptime(data["date"], "%Y-%m-%d").date()
-
-        booking = Booking.objects.create(
-            name=data["name"],
-            phone=data["phone"],
-            email=data["email"],
-            event_type=data["event_type"],
-            date=event_date,
-            location=data["location"],
-            amount=int(data["amount"]),
-            status="PENDING"
-        )
-
-        # =========================
-        # 📩 OWNER MAIL
-        # =========================
+        # OWNER MAIL
         send_mail(
             "📩 New Booking Request (PENDING)",
             f"""
@@ -82,9 +61,7 @@ https://friendsevent.onrender.com/admin/
             fail_silently=True
         )
 
-        # =========================
-        # 📩 CLIENT MAIL
-        # =========================
+        # CLIENT MAIL
         send_mail(
             "✅ Booking Submitted - Friends Events Decorative",
             f"""
@@ -95,7 +72,7 @@ Your booking request has been submitted successfully ✅
 Booking ID: {booking.id}
 Current Status: PENDING
 
-We will contact you soon for approval and payment.
+We will contact you soon.
 
 Thanks ❤️
 Friends Events Decorative
@@ -104,18 +81,49 @@ Friends Events Decorative
             [booking.email],
             fail_silently=True
         )
+    except Exception as e:
+        print("MAIL ERROR:", e)
 
+
+# ======================================================
+# 🔥 BOOKING API (FAST VERSION)
+# ======================================================
+@csrf_exempt
+def api_booking(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "Only POST allowed"}, status=405)
+
+    try:
+        data = json.loads(request.body)
+        event_date = datetime.strptime(data["date"], "%Y-%m-%d").date()
+
+        booking = Booking.objects.create(
+            name=data["name"],
+            phone=data["phone"],
+            email=data["email"],
+            event_type=data["event_type"],
+            date=event_date,
+            location=data["location"],
+            amount=int(data["amount"]),
+            status="PENDING"
+        )
+
+        # 🔥 SEND MAIL IN BACKGROUND
+        threading.Thread(
+            target=send_booking_emails,
+            args=(booking,),
+            daemon=True
+        ).start()
+
+        # ⚡ INSTANT RESPONSE
         return JsonResponse({
             "success": True,
             "booking_id": booking.id
         })
 
     except Exception as e:
-        print("🔥 BOOKING ERROR:", e)
-        return JsonResponse({
-            "success": False,
-            "error": str(e)
-        }, status=500)
+        print("BOOKING ERROR:", e)
+        return JsonResponse({"success": False}, status=500)
 
 
 # ======================================================
@@ -124,17 +132,14 @@ Friends Events Decorative
 def payment_page(request, booking_id):
     booking = get_object_or_404(Booking, id=booking_id)
 
-    # ❌ Payment allowed only after APPROVED
     if booking.status not in ["APPROVED", "PAID"]:
         return render(request, "payment_wait.html", {"booking": booking})
 
-    # ✅ Already paid
     if booking.status == "PAID":
         return render(request, "payment_done.html", {"booking": booking})
 
     upi_id = settings.UPI_ID
     business_name = settings.BUSINESS_NAME
-
     pay_amount = booking.advance_amount if booking.advance_amount > 0 else booking.amount
 
     upi_link = (
@@ -154,13 +159,12 @@ def payment_page(request, booking_id):
         booking.status = "PAID"
         booking.save()
 
-        # =========================
-        # 📩 OWNER MAIL
-        # =========================
-        try:
-            owner_mail = EmailMessage(
-                subject=f"✅ Payment Screenshot Uploaded - Booking #{booking.id}",
-                body=f"""
+        # 🔥 OWNER MAIL BACKGROUND
+        def send_payment_mail():
+            try:
+                owner_mail = EmailMessage(
+                    subject=f"✅ Payment Screenshot Uploaded - Booking #{booking.id}",
+                    body=f"""
 Payment screenshot uploaded ✅
 
 Name: {booking.name}
@@ -171,22 +175,21 @@ Date: {booking.date}
 Location: {booking.location}
 
 Advance Paid: ₹{booking.advance_amount}
-Status: PAID (Waiting confirmation)
+Status: PAID
 """,
-                from_email=settings.EMAIL_HOST_USER,
-                to=[settings.OWNER_EMAIL]
-            )
+                    from_email=settings.EMAIL_HOST_USER,
+                    to=[settings.OWNER_EMAIL]
+                )
 
-            if booking.payment_screenshot:
-                owner_mail.attach_file(booking.payment_screenshot.path)
+                if booking.payment_screenshot:
+                    owner_mail.attach_file(booking.payment_screenshot.path)
 
-            owner_mail.send(fail_silently=True)
-        except Exception as e:
-            print("MAIL ERROR:", e)
+                owner_mail.send(fail_silently=True)
+            except Exception as e:
+                print("PAYMENT MAIL ERROR:", e)
 
-        # =========================
-        # 📩 CLIENT MAIL
-        # =========================
+        threading.Thread(target=send_payment_mail, daemon=True).start()
+
         send_mail(
             "✅ Payment Uploaded - Friends Events Decorative",
             f"""
@@ -196,9 +199,6 @@ Your payment screenshot has been received ✅
 Please wait while admin confirms your booking.
 
 Booking ID: {booking.id}
-
-Thanks ❤️
-Friends Events Decorative
 """,
             settings.EMAIL_HOST_USER,
             [booking.email],
@@ -215,34 +215,3 @@ Friends Events Decorative
         "upi_link": upi_link,
         "pay_amount": pay_amount
     })
-
-
-# ======================================================
-# 📄 DOWNLOAD INVOICE
-# ======================================================
-def download_invoice(request, booking_id):
-    booking = get_object_or_404(Booking, id=booking_id)
-    pdf_path = generate_invoice_pdf(booking)
-
-    return FileResponse(
-        open(pdf_path, "rb"),
-        as_attachment=True,
-        filename=f"invoice_{booking.id}.pdf"
-    )
-
-
-# ======================================================
-# 🖼️ GALLERY API
-# ======================================================
-def api_gallery(request):
-    images = GalleryImage.objects.order_by("-uploaded_at")
-
-    data = [
-        {
-            "image": request.build_absolute_uri(img.image.url),
-            "title": img.title
-        }
-        for img in images
-    ]
-
-    return JsonResponse(data, safe=False)
