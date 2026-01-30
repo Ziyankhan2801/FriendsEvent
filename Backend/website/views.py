@@ -79,7 +79,7 @@ https://friendsevent.onrender.com/admin/
 """,
             settings.EMAIL_HOST_USER,
             [settings.OWNER_EMAIL],
-            fail_silently=True
+            fail_silently=False
         )
 
         # =========================
@@ -102,7 +102,7 @@ Friends Events Decorative
 """,
             settings.EMAIL_HOST_USER,
             [booking.email],
-            fail_silently=True
+            fail_silently=False
         )
 
         return JsonResponse({
@@ -202,7 +202,7 @@ Friends Events Decorative
 """,
             settings.EMAIL_HOST_USER,
             [booking.email],
-            fail_silently=True
+            fail_silently=False
         )
 
         messages.success(request, "✅ Payment uploaded successfully!")
