@@ -17,16 +17,19 @@ if not os.getenv("RENDER"):
 ALLOWED_HOSTS = [
     "friendsevent.onrender.com",
     ".onrender.com",
+    "friendseventsdecor.netlify.app",  # 🔥 IMPORTANT
     "localhost",
     "127.0.0.1",
 ]
 
 CSRF_TRUSTED_ORIGINS = [
     "https://friendsevent.onrender.com",
+    "https://friendseventsdecor.netlify.app",  # 🔥 IMPORTANT
 ]
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 USE_X_FORWARDED_HOST = True
+
 
 # ======================
 # APPS
@@ -42,11 +45,12 @@ INSTALLED_APPS = [
     "website",
 ]
 
+
 # ======================
 # MIDDLEWARE
 # ======================
 MIDDLEWARE = [
-    "corsheaders.middleware.CorsMiddleware",
+    "corsheaders.middleware.CorsMiddleware",  # MUST FIRST
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -56,13 +60,23 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
 ]
 
-CORS_ALLOW_ALL_ORIGINS = True
+
+# ======================
+# 🔥 CORS PRODUCTION FIX
+# ======================
+CORS_ALLOWED_ORIGINS = [
+    "https://friendseventsdecor.netlify.app",
+]
+
+CORS_ALLOW_CREDENTIALS = True
+
 
 # ======================
 # URL / WSGI
 # ======================
 ROOT_URLCONF = "core.urls"
 WSGI_APPLICATION = "core.wsgi.application"
+
 
 # ======================
 # TEMPLATES
@@ -83,19 +97,18 @@ TEMPLATES = [
     },
 ]
 
+
 # ======================
 # DATABASE
 # ======================
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
-    }
+    "default": dj_database_url.parse(
+        os.getenv("DATABASE_URL"),
+        conn_max_age=600,
+        ssl_require=True
+    )
 }
 
-DATABASE_URL = os.getenv("DATABASE_URL")
-if DATABASE_URL:
-    DATABASES["default"] = dj_database_url.parse(DATABASE_URL)
 
 # ======================
 # STATIC / MEDIA
@@ -106,6 +119,7 @@ STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
+
 
 # ======================
 # EMAIL
@@ -119,11 +133,13 @@ EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
 DEFAULT_FROM_EMAIL = "Friends Events <friendseventsdecor@gmail.com>"
 OWNER_EMAIL = "umerkhan708670@gmail.com"
 
+
 # ======================
 # BUSINESS
 # ======================
 BUSINESS_NAME = "Friends Events Decorative"
 UPI_ID = "9021520686@axl"
+
 
 # ======================
 # CLOUDINARY
@@ -133,5 +149,6 @@ CLOUDINARY_URL = os.getenv("CLOUDINARY_URL")
 if CLOUDINARY_URL:
     INSTALLED_APPS += ["cloudinary", "cloudinary_storage"]
     DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
+
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
