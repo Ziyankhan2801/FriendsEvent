@@ -75,7 +75,7 @@ Budget: ₹{booking.amount}
 Booking ID: {booking.id}
 
 Admin Panel:
-http://127.0.0.1:8000/admin/
+https://friendsevent.onrender.com/admin/
 """,
             settings.EMAIL_HOST_USER,
             [settings.OWNER_EMAIL],

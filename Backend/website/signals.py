@@ -44,7 +44,7 @@ Hi {instance.name} 👋,
 📌 UPI ID: {settings.UPI_ID}
 
 🔗 Payment Link (Upload Screenshot Here):
-http://127.0.0.1:8000/payment/{instance.id}/
+https://friendsevent.onrender.com/payment/{instance.id}/
 
 📸 After payment, please upload the payment screenshot from the link above.
 ✅ Once we verify the payment, your booking will be CONFIRMED.
@@ -127,7 +127,7 @@ Hello Owner ✅,
 • Advance Paid: ₹{instance.advance_amount}
 
 ✅ Invoice & Payment Screenshot attached.
-Admin Panel: http://127.0.0.1:8000/admin/
+Admin Panel: https://friendsevent.onrender.com/admin/
 """.strip()
 
             owner_mail = EmailMessage(

@@ -161,7 +161,7 @@ OWNER_EMAIL = "umerkhan708670@gmail.com"
 
 BUSINESS_NAME = "Friends Events Decorative"
 UPI_ID = "9021520686@axl"
-
+BUSINESS_CITY = "Chopda"
 
 # =====================================================
 # CLOUDINARY
