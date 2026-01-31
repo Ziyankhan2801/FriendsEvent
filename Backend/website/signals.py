@@ -8,29 +8,18 @@ from .utils.invoice import generate_invoice_pdf
 import threading
 
 
+# ======================================================
+# 🔥 BACKGROUND MAIL SENDER
+# ======================================================
 
-@receiver(post_save, sender=Booking)
-def booking_status_mail(sender, instance, created, **kwargs):
-    # ✅ Create pe mail views.py se ja raha hai
-    if created:
-        return
+def send_status_mail(instance):
+    try:
+        # ✅ APPROVED MAIL (CLIENT)
+        if instance.status == "APPROVED":
 
-    # ✅ Safety: Field exists? (agar DB me column nahi hoga toh crash nahi hoga)
-    last_status = getattr(instance, "last_notified_status", None)
+            subject = "🎉 Booking Approved ✅ - Advance Payment Required"
 
-    # ✅ Spam prevention: same status pe dobara mail mat bhejo
-    if last_status == instance.status:
-        return
-
-    # ✅ Only status changes in these cases
-    if instance.status not in ["APPROVED", "CONFIRMED", "DENIED"]:
-        return
-
-    # ✅ APPROVED MAIL (CLIENT)
-    if instance.status == "APPROVED":
-        subject = "🎉 Booking Approved ✅ - Advance Payment Required"
-
-        body = f"""
+            body = f"""
 Hi {instance.name} 👋,
 
 ✅ Good News! Your booking has been APPROVED 🎉
@@ -51,14 +40,11 @@ https://friendsevent.onrender.com/payment/{instance.id}/
 📸 After payment, please upload the payment screenshot from the link above.
 ✅ Once we verify the payment, your booking will be CONFIRMED.
 
-If you need any help, reply to this email or call us 📞
-
 Thanks ❤️
 {settings.BUSINESS_NAME}
 📍 {settings.BUSINESS_CITY}
 """.strip()
 
-        try:
             mail = EmailMessage(
                 subject=subject,
                 body=body,
@@ -66,19 +52,19 @@ Thanks ❤️
                 to=[instance.email],
             )
             mail.send(fail_silently=True)
-        except:
-            pass
 
-    # ✅ CONFIRMED MAIL (CLIENT + OWNER with invoice + screenshot)
-    elif instance.status == "CONFIRMED":
-        pdf_path = None
-        try:
-            pdf_path = generate_invoice_pdf(instance)
-        except:
+        # ==================================================
+        # ✅ CONFIRMED MAIL
+        # ==================================================
+        elif instance.status == "CONFIRMED":
+
             pdf_path = None
+            try:
+                pdf_path = generate_invoice_pdf(instance)
+            except:
+                pdf_path = None
 
-        # ✅ CLIENT CONFIRMATION MAIL + INVOICE
-        try:
+            # CLIENT MAIL
             client_body = f"""
 Hi {instance.name} 👋,
 
@@ -93,7 +79,8 @@ Hi {instance.name} 👋,
 
 ✅ Your invoice is attached in this email.
 
-Thanks for choosing {settings.BUSINESS_NAME} ❤️
+Thanks ❤️
+{settings.BUSINESS_NAME}
 """.strip()
 
             client_mail = EmailMessage(
@@ -107,11 +94,8 @@ Thanks for choosing {settings.BUSINESS_NAME} ❤️
                 client_mail.attach_file(pdf_path)
 
             client_mail.send(fail_silently=True)
-        except:
-            pass
 
-        # ✅ OWNER CONFIRMATION MAIL + INVOICE + SCREENSHOT
-        try:
+            # OWNER MAIL
             owner_body = f"""
 Hello Owner ✅,
 
@@ -128,8 +112,8 @@ Hello Owner ✅,
 • Total Amount: ₹{instance.amount}
 • Advance Paid: ₹{instance.advance_amount}
 
-✅ Invoice & Payment Screenshot attached.
-Admin Panel: https://friendsevent.onrender.com/admin/
+Admin Panel:
+https://friendsevent.onrender.com/admin/
 """.strip()
 
             owner_mail = EmailMessage(
@@ -146,13 +130,15 @@ Admin Panel: https://friendsevent.onrender.com/admin/
                 owner_mail.attach_file(instance.payment_screenshot.path)
 
             owner_mail.send(fail_silently=True)
-        except:
-            pass
 
-    # ✅ DENIED MAIL (CLIENT)
-    elif instance.status == "DENIED":
-        subject = "❌ Booking Request Denied"
-        body = f"""
+        # ==================================================
+        # ✅ DENIED MAIL
+        # ==================================================
+        elif instance.status == "DENIED":
+
+            subject = "❌ Booking Request Denied"
+
+            body = f"""
 Hi {instance.name},
 
 Sorry 😔 your booking request has been denied.
@@ -162,12 +148,10 @@ Sorry 😔 your booking request has been denied.
 • Date: {instance.date}
 • Location: {instance.location}
 
-You can try booking again with another date.
 Thanks ❤️
 {settings.BUSINESS_NAME}
 """.strip()
 
-        try:
             mail = EmailMessage(
                 subject=subject,
                 body=body,
@@ -175,12 +159,41 @@ Thanks ❤️
                 to=[instance.email],
             )
             mail.send(fail_silently=True)
-        except:
-            pass
 
-    # ✅ Mark notified status (but save recursion se bachne ke liye)
+    except Exception as e:
+        print("STATUS MAIL ERROR:", e)
+
+
+# ======================================================
+# 🔥 MAIN SIGNAL
+# ======================================================
+
+@receiver(post_save, sender=Booking)
+def booking_status_mail(sender, instance, created, **kwargs):
+
+    if created:
+        return
+
+    last_status = getattr(instance, "last_notified_status", None)
+
+    if last_status == instance.status:
+        return
+
+    if instance.status not in ["APPROVED", "CONFIRMED", "DENIED"]:
+        return
+
+    # 🚀 RUN MAIL IN BACKGROUND (NON BLOCKING)
+    threading.Thread(
+        target=send_status_mail,
+        args=(instance,),
+        daemon=True
+    ).start()
+
+    # ✅ Mark notified status safely
     try:
         if hasattr(instance, "last_notified_status"):
-            Booking.objects.filter(id=instance.id).update(last_notified_status=instance.status)
+            Booking.objects.filter(id=instance.id).update(
+                last_notified_status=instance.status
+            )
     except:
         pass
